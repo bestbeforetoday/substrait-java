@@ -75,7 +75,8 @@ public class FunctionMappings {
               s(AggregateFunctions.SUM0, "sum0"),
               s(SqlStdOperatorTable.COUNT, "count"),
               s(SqlStdOperatorTable.APPROX_COUNT_DISTINCT, "approx_count_distinct"),
-              s(AggregateFunctions.AVG, "avg"))
+              s(AggregateFunctions.AVG, "avg"),
+              s(SqlStdOperatorTable.GROUPING, "grouping"))
           .build();
 
   public static final ImmutableList<Sig> WINDOW_SIGS =

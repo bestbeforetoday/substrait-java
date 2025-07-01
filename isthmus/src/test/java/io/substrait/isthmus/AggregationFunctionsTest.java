@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -85,5 +87,11 @@ public class AggregationFunctionsTest extends PlanTestBase {
             input -> functions(input, aggFunction),
             numericTypesTable);
     assertFullRoundTrip(rel);
+  }
+
+  @Test
+  void sqlGrouping() throws SqlParseException {
+    String sql = "SELECT GROUPING(o_custkey) FROM orders GROUP BY ROLLUP (o_custkey, o_clerk)";
+    assertFullRoundTrip(sql);
   }
 }
