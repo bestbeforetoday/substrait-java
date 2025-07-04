@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -85,5 +88,73 @@ public class AggregationFunctionsTest extends PlanTestBase {
             input -> functions(input, aggFunction),
             numericTypesTable);
     assertFullRoundTrip(rel);
+  }
+
+  @Test
+  void sqlGroupingSingle() throws Exception {
+    String create = "CREATE TABLE Sales (Country VARCHAR(255), Amount INT);";
+    String sql =
+        "SELECT Country, SUM(Amount) AS Total, GROUPING(Country) AS GP_Country"
+            + " FROM Sales"
+            + " GROUP BY GROUPING SETS ((Country), ())";
+    assertFullRoundTrip(sql, create);
+    // LogicalAggregate(group=[{0}], groups=[[{0}, {}]], TOTAL=[SUM($1)], GP_COUNTRY=[GROUPING($0)])
+    //  LogicalTableScan(table=[[SALES]])
+  }
+
+  @Test
+  void sqlGroupingRewrite() throws Exception {
+    String create = "CREATE TABLE Sales (Country VARCHAR(255), Amount INT, GroupingId INT);";
+    String sql =
+        "SELECT Country, SUM(Amount) AS Total,"
+            + " CASE WHEN SUM(GroupingId) = 0 THEN 0"
+            + "      WHEN SUM(GroupingId) = 1 THEN 0"
+            + " ELSE 1"
+            + " END AS GP_Country"
+            + " FROM Sales"
+            + " GROUP BY GROUPING SETS ((Country), ())";
+    assertFullRoundTrip(sql, create);
+    // LogicalProject(COUNTRY=[$0], TOTAL=[$1], GP_COUNTRY=[CASE(SEARCH($2, Sarg[0, 1]), 0, 1)])
+    //  LogicalAggregate(group=[{0}], groups=[[{0}, {}]], TOTAL=[SUM($1)], agg#1=[SUM($2)])
+    //    LogicalTableScan(table=[[SALES]])
+
+    // Root{
+    //   input=Project{
+    //     remap=Remap{indices=[3, 4, 5]},
+    //       input=Aggregate{
+    //         input=NamedScan{initialSchema=NamedStruct{struct=Struct{nullable=false,
+    // fields=[VarChar{nullable=true, length=255}, I32{nullable=true}, I32{nullable=true}]},
+    // names=[COUNTRY, AMOUNT, GROUPINGID]}, names=[SALES]},
+    // groupings=[Grouping{expressions=[FieldReference{segments=[StructField{offset=0}],
+    // type=VarChar{nullable=true, length=255}}]}, Grouping{expressions=[]}],
+    // measures=[Measure{function=AggregateFunctionInvocation{declaration=sum:i32,
+    // arguments=[FieldReference{segments=[StructField{offset=1}], type=I32{nullable=true}}],
+    // options=[], aggregationPhase=INITIAL_TO_RESULT, sort=[], outputType=I32{nullable=true},
+    // invocation=ALL}}, Measure{function=AggregateFunctionInvocation{declaration=sum:i32,
+    // arguments=[FieldReference{segments=[StructField{offset=2}], type=I32{nullable=true}}],
+    // options=[], aggregationPhase=INITIAL_TO_RESULT, sort=[], outputType=I32{nullable=true},
+    // invocation=ALL}}]}, expressions=[FieldReference{segments=[StructField{offset=0}],
+    // type=VarChar{nullable=true, length=255}}, FieldReference{segments=[StructField{offset=1}],
+    // type=I32{nullable=true}},
+    // IfThen{ifClauses=[IfClause{condition=ScalarFunctionInvocation{declaration=or:bool,
+    // arguments=[ScalarFunctionInvocation{declaration=equal:any_any,
+    // arguments=[FieldReference{segments=[StructField{offset=2}], type=I32{nullable=true}},
+    // I32Literal{nullable=false, value=0}], options=[], outputType=Bool{nullable=true}},
+    // ScalarFunctionInvocation{declaration=equal:any_any,
+    // arguments=[FieldReference{segments=[StructField{offset=2}], type=I32{nullable=true}},
+    // I32Literal{nullable=false, value=1}], options=[], outputType=Bool{nullable=true}}],
+    // options=[], outputType=Bool{nullable=true}}, then=I32Literal{nullable=false, value=0}}],
+    // elseClause=I32Literal{nullable=false, value=1}}]}, names=[COUNTRY, TOTAL, GP_COUNTRY]}
+  }
+
+  @Test
+  @Disabled
+  void sqlMultipleGrouping() throws SqlParseException {
+    String create = "CREATE TABLE Sales (Country VARCHAR(255), Amount INT);";
+    String sql =
+        "SELECT Country, SUM(Amount) AS Total, GROUPING(Country) AS GP_Country"
+            + " FROM Sales"
+            + " GROUP BY ROLLUP (Country)";
+    assertFullRoundTrip(sql, create);
   }
 }

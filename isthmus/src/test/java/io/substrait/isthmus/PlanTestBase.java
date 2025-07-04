@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 import io.substrait.dsl.SubstraitBuilder;
 import io.substrait.extension.ExtensionCollector;
 import io.substrait.extension.SimpleExtension;
@@ -172,6 +174,8 @@ public class PlanTestBase {
    *   <li>Substrait POJO 1 == Substrait POJO 2
    *   <li>Substrait POJO 2 == Substrait POJO 3
    * </ul>
+   *
+   * @throws InvalidProtocolBufferException
    */
   protected void assertFullRoundTrip(String sqlQuery, Prepare.CatalogReader catalogReader)
       throws SqlParseException {
@@ -179,15 +183,22 @@ public class PlanTestBase {
 
     // SQL -> Calcite 1
     RelRoot calcite1 = SubstraitSqlToCalcite.convertQuery(sqlQuery, catalogReader);
+    System.out.println("Calcite1 >>> " + calcite1.rel.explain());
 
     // Calcite 1 -> Substrait POJO 1
     Plan.Root root1 = SubstraitRelVisitor.convert(calcite1, extensions);
+    System.out.println("Substrait POJO >>> " + root1);
 
     // Substrait Root 1 -> Substrait Proto
     io.substrait.proto.RelRoot proto = new RelProtoConverter(extensionCollector).toProto(root1);
 
     // Substrait Proto -> Substrait Root 2
     Plan.Root root2 = new ProtoRelConverter(extensionCollector, extensions).from(proto);
+    try {
+      System.out.println("Substrait proto >>> " + JsonFormat.printer().print(proto));
+    } catch (InvalidProtocolBufferException e) {
+      throw new IllegalStateException(e);
+    }
 
     // Verify that roots are the same
     assertEquals(root1, root2);

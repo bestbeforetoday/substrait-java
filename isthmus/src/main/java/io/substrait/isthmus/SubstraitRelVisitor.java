@@ -42,6 +42,7 @@ import io.substrait.type.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.stream.Collectors;
@@ -252,25 +253,23 @@ public class SubstraitRelVisitor extends RelNodeVisitor<Rel, RuntimeException> {
   @Override
   public Rel visit(org.apache.calcite.rel.core.Aggregate aggregate) {
     Rel input = apply(aggregate.getInput());
+
     Stream<ImmutableBitSet> sets;
     if (aggregate.groupSets != null) {
       sets = aggregate.groupSets.stream();
     } else {
       sets = Stream.of(aggregate.getGroupSet());
     }
+    Stream<Grouping> groupings = sets.filter(Objects::nonNull).map(s -> fromGroupSet(s, input));
 
-    List<Grouping> groupings =
-        sets.filter(s -> s != null).map(s -> fromGroupSet(s, input)).collect(Collectors.toList());
-
-    List<Measure> aggCalls =
+    Stream<Measure> aggCalls =
         aggregate.getAggCallList().stream()
-            .map(c -> fromAggCall(aggregate.getInput(), input.getRecordType(), c))
-            .collect(Collectors.toList());
+            .map(c -> fromAggCall(aggregate.getInput(), input.getRecordType(), c));
 
     return Aggregate.builder()
         .input(input)
-        .addAllGroupings(groupings)
-        .addAllMeasures(aggCalls)
+        .addAllGroupings(groupings::iterator)
+        .addAllMeasures(aggCalls::iterator)
         .build();
   }
 
@@ -283,6 +282,12 @@ public class SubstraitRelVisitor extends RelNodeVisitor<Rel, RuntimeException> {
   }
 
   Aggregate.Measure fromAggCall(RelNode input, Type.Struct inputType, AggregateCall call) {
+    // SqlAggFunction aggFunction = call.getAggregation();
+    // if (aggFunction == SqlStdOperatorTable.GROUPING || aggFunction ==
+    // SqlStdOperatorTable.GROUPING_ID) {
+
+    // }
+
     Optional<AggregateFunctionInvocation> invocation =
         aggregateFunctionConverter.convert(
             input, inputType, call, t -> t.accept(rexExpressionConverter));
