@@ -7,6 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.TextFormat;
+import com.google.protobuf.util.JsonFormat;
+
 import io.substrait.dsl.SubstraitBuilder;
 import io.substrait.extension.ExtensionCollector;
 import io.substrait.extension.SimpleExtension;
@@ -25,6 +29,7 @@ import io.substrait.type.TypeCreator;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.apache.calcite.adapter.tpcds.TpcdsSchema;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -172,6 +177,7 @@ public class PlanTestBase {
    *   <li>Substrait POJO 1 == Substrait POJO 2
    *   <li>Substrait POJO 2 == Substrait POJO 3
    * </ul>
+   * @throws InvalidProtocolBufferException 
    */
   protected void assertFullRoundTrip(String sqlQuery, Prepare.CatalogReader catalogReader)
       throws SqlParseException {
@@ -188,6 +194,16 @@ public class PlanTestBase {
 
     // Substrait Proto -> Substrait Root 2
     Plan.Root root2 = new ProtoRelConverter(extensionCollector, extensions).from(proto);
+
+    if (sqlQuery.toLowerCase(Locale.ROOT).contains("grouping(")) {
+      System.out.println("Calcite1 >>> " + calcite1.rel.explain());
+      System.out.println("Substrait POJO >>> " + root1);
+        try {
+            System.out.println("Substrait proto >>> " + JsonFormat.printer().print(proto));
+        } catch (InvalidProtocolBufferException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     // Verify that roots are the same
     assertEquals(root1, root2);

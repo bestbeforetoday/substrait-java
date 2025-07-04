@@ -5,7 +5,7 @@ import io.substrait.expression.Expression;
 import io.substrait.type.Type;
 import io.substrait.type.TypeCreator;
 import io.substrait.util.VisitationContext;
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,17 +21,25 @@ public abstract class Aggregate extends SingleInputRel implements HasExtension {
 
   @Override
   protected Type.Struct deriveRecordType() {
-    return TypeCreator.REQUIRED.struct(
-        Stream.concat(
-            // unique grouping expressions
-            getGroupings().stream()
-                .flatMap(g -> g.getExpressions().stream())
-                .collect(Collectors.toCollection(LinkedHashSet::new))
-                .stream()
-                .map(Expression::getType),
+    List<Grouping> groupings = getGroupings();
 
-            // measures
-            getMeasures().stream().map(t -> t.getFunction().getType())));
+    Stream<Type> uniqueGroupingExpressions =
+        groupings.stream()
+            .flatMap(g -> g.getExpressions().stream())
+            .distinct()
+            .map(Expression::getType);
+    Stream<Type> measures =
+        getMeasures().stream().map(Measure::getFunction).map(AggregateFunctionInvocation::getType);
+
+    List<Type> resultTypes =
+        Stream.concat(uniqueGroupingExpressions, measures)
+            .collect(Collectors.toCollection(ArrayList::new));
+
+    if (groupings.size() > 1) {
+      resultTypes.add(TypeCreator.REQUIRED.I32);
+    }
+
+    return TypeCreator.REQUIRED.struct(resultTypes);
   }
 
   @Override

@@ -37,7 +37,9 @@ import io.substrait.type.NamedStruct;
 import io.substrait.type.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.stream.Collectors;
@@ -62,6 +64,9 @@ public class SubstraitRelVisitor extends RelNodeVisitor<Rel, RuntimeException> {
 
   private static final FeatureBoard FEATURES_DEFAULT = ImmutableFeatureBoard.builder().build();
   private static final Expression.BoolLiteral TRUE = ExpressionCreator.bool(false, true);
+
+  private static final java.util.Set<String> IGNORED_AGGREGATE_CALL_NAMES =
+      java.util.Set.of("grouping", "grouping_id");
 
   protected final RexExpressionConverter rexExpressionConverter;
   protected final AggregateFunctionConverter aggregateFunctionConverter;
@@ -255,10 +260,11 @@ public class SubstraitRelVisitor extends RelNodeVisitor<Rel, RuntimeException> {
     }
 
     List<Grouping> groupings =
-        sets.filter(s -> s != null).map(s -> fromGroupSet(s, input)).collect(Collectors.toList());
+        sets.filter(Objects::nonNull).map(s -> fromGroupSet(s, input)).collect(Collectors.toList());
 
     List<Measure> aggCalls =
         aggregate.getAggCallList().stream()
+            .filter(SubstraitRelVisitor::isAllowedAggregateCall)
             .map(c -> fromAggCall(aggregate.getInput(), input.getRecordType(), c))
             .collect(Collectors.toList());
 
@@ -267,6 +273,11 @@ public class SubstraitRelVisitor extends RelNodeVisitor<Rel, RuntimeException> {
         .addAllGroupings(groupings)
         .addAllMeasures(aggCalls)
         .build();
+  }
+
+  private static boolean isAllowedAggregateCall(AggregateCall call) {
+    String name = call.getAggregation().getName().toLowerCase(Locale.ROOT);
+    return !IGNORED_AGGREGATE_CALL_NAMES.contains(name);
   }
 
   Aggregate.Grouping fromGroupSet(ImmutableBitSet bitSet, Rel input) {
