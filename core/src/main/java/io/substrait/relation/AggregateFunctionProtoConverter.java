@@ -6,6 +6,7 @@ import io.substrait.extension.ExtensionCollector;
 import io.substrait.proto.AggregateFunction;
 import io.substrait.type.proto.TypeProtoConverter;
 import io.substrait.util.EmptyVisitationContext;
+import java.util.List;
 import java.util.stream.IntStream;
 
 /**
@@ -25,9 +26,10 @@ public class AggregateFunctionProtoConverter {
   }
 
   public AggregateFunction toProto(Aggregate.Measure measure) {
-    var argVisitor = FunctionArg.toProto(typeProtoConverter, exprProtoConverter);
-    var args = measure.getFunction().arguments();
-    var aggFuncDef = measure.getFunction().declaration();
+    FunctionArg.FuncArgVisitor<FunctionArgument, RuntimeException> argVisitor =
+        FunctionArg.toProto(typeProtoConverter, exprProtoConverter);
+    List<FunctionArg> args = measure.getFunction().arguments();
+    SimpleExtension.AggregateFunctionVariant aggFuncDef = measure.getFunction().declaration();
 
     return AggregateFunction.newBuilder()
         .setPhase(measure.getFunction().aggregationPhase().toProto())
