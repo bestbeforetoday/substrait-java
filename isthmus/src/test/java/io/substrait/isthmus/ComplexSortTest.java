@@ -65,9 +65,11 @@ public class ComplexSortTest extends PlanTestBase {
                 b.namedScan(List.of("example"), List.of("a"), List.of(R.STRING))));
 
     String expected =
-        "Collation: [0]\n"
-            + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "  LogicalTableScan(table=[[example]])\n";
+        """
+        Collation: [0]
+        LogicalSort(sort0=[$0], dir0=[ASC])
+          LogicalTableScan(table=[[example]])
+        """;
 
     RelNode relReturned = substraitToCalcite.convert(rel);
     var sw = new StringWriter();
@@ -93,11 +95,13 @@ public class ComplexSortTest extends PlanTestBase {
                 b.namedScan(List.of("example"), List.of("a"), List.of(R.STRING))));
 
     String expected =
-        "LogicalProject(a0=[$0])\n"
-            + "  Collation: [1]\n"
-            + "  LogicalSort(sort0=[$1], dir0=[ASC])\n"
-            + "    LogicalProject(a=[$0], a0=[CAST($0):INTEGER NOT NULL])\n"
-            + "      LogicalTableScan(table=[[example]])\n";
+        """
+         LogicalProject(a0=[$0])
+           Collation: [1]
+           LogicalSort(sort0=[$1], dir0=[ASC])
+             LogicalProject(a=[$0], a0=[CAST($0):INTEGER NOT NULL])
+               LogicalTableScan(table=[[example]])
+         """;
 
     RelNode relReturned = substraitToCalcite.convert(rel);
     var sw = new StringWriter();
@@ -123,11 +127,13 @@ public class ComplexSortTest extends PlanTestBase {
                 b.namedScan(List.of("example"), List.of("a"), List.of(R.STRING))));
 
     String expected =
-        "LogicalProject(a0=[CAST($0):INTEGER NOT NULL])\n"
-            + "  Collation: [1 DESC-nulls-last]\n"
-            + "  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
-            + "    LogicalProject(a=[$0], a0=[CAST($0):INTEGER NOT NULL])\n"
-            + "      LogicalTableScan(table=[[example]])\n";
+        """
+        LogicalProject(a0=[CAST($0):INTEGER NOT NULL])
+          Collation: [1 DESC-nulls-last]
+          LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+            LogicalProject(a=[$0], a0=[CAST($0):INTEGER NOT NULL])
+              LogicalTableScan(table=[[example]])
+         """;
 
     RelNode relReturned = substraitToCalcite.convert(rel);
     var sw = new StringWriter();
@@ -153,11 +159,13 @@ public class ComplexSortTest extends PlanTestBase {
                 b.namedScan(List.of("example"), List.of("a"), List.of(R.STRING))));
 
     String expected =
-        "LogicalProject(a0=[$0])\n"
-            + "  Collation: [1 DESC-nulls-last]\n"
-            + "  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
-            + "    LogicalProject(a=[$0], a0=[$0])\n"
-            + "      LogicalTableScan(table=[[example]])\n";
+        """
+        LogicalProject(a0=[$0])
+          Collation: [1 DESC-nulls-last]
+          LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+            LogicalProject(a=[$0], a0=[$0])
+              LogicalTableScan(table=[[example]])
+        """;
 
     RelNode relReturned = substraitToCalcite.convert(rel);
     var sw = new StringWriter();
@@ -186,11 +194,13 @@ public class ComplexSortTest extends PlanTestBase {
                 b.namedScan(List.of("example"), List.of("a", "b"), List.of(R.STRING, R.I32))));
 
     String expected =
-        "LogicalProject(a0=[$0], b0=[$1])\n"
-            + "  Collation: [2 DESC, 3]\n"
-            + "  LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[ASC])\n"
-            + "    LogicalProject(a=[$0], b=[$1], a0=[CAST($0):INTEGER NOT NULL], $f3=[+(-($1), 42)])\n"
-            + "      LogicalTableScan(table=[[example]])\n";
+        """
+        LogicalProject(a0=[$0], b0=[$1])
+          Collation: [2 DESC, 3]
+          LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[ASC])
+            LogicalProject(a=[$0], b=[$1], a0=[CAST($0):INTEGER NOT NULL], $f3=[+(-($1), 42)])
+              LogicalTableScan(table=[[example]])
+        """;
 
     RelNode relReturned = substraitToCalcite.convert(rel);
     var sw = new StringWriter();

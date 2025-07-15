@@ -14,16 +14,12 @@ public abstract class CalciteObjs {
   final RexBuilder rex = new RexBuilder(type);
 
   RelDataType t(SqlTypeName typeName, int... vals) {
-    switch (vals.length) {
-      case 0:
-        return type.createSqlType(typeName);
-      case 1:
-        return type.createSqlType(typeName, vals[0]);
-      case 2:
-        return type.createSqlType(typeName, vals[0], vals[1]);
-      default:
-        throw new IllegalArgumentException();
-    }
+    return switch (vals.length) {
+      case 0 -> type.createSqlType(typeName);
+      case 1 -> type.createSqlType(typeName, vals[0]);
+      case 2 -> type.createSqlType(typeName, vals[0], vals[1]);
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   RelDataType tN(SqlTypeName typeName, int... vals) {

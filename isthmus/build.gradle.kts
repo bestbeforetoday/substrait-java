@@ -98,6 +98,14 @@ java {
   withSourcesJar()
 }
 
+tasks.named<JavaCompile>("compileTestJava") {
+  javaCompiler.set(javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(17)) })
+}
+
+tasks.named<Test>("test") {
+  javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(17)) })
+}
+
 configurations { runtimeClasspath { resolutionStrategy.activateDependencyLocking() } }
 
 val CALCITE_VERSION = properties.get("calcite.version")
