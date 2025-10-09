@@ -25,6 +25,10 @@ dependencies {
   compileOnly(libs.immutables.annotations)
 }
 
+buildscript {
+  configurations.classpath { resolutionStrategy { force("org.eclipse.jgit:org.eclipse.jgit:5.+") } }
+}
+
 allprojects {
   repositories { mavenCentral() }
 
@@ -44,7 +48,7 @@ allprojects {
         googleJavaFormat()
         removeUnusedImports()
         trimTrailingWhitespace()
-        removeWildcardImports()
+        forbidWildcardImports()
       }
     }
   }
