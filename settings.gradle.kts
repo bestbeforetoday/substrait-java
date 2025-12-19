@@ -10,4 +10,5 @@ include(
   "spark",
   "examples:substrait-spark",
   "examples:isthmus-api",
+  "isthmus-dialect",
 )
